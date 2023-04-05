@@ -1,10 +1,8 @@
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-dotenv.config();
+const nodemailer = require("nodemailer");
 
-class MailServices {
+class MailService {
   constructor() {
-    this.transportier = nodemailer.createTransport({
+    this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
       secure: false,
@@ -14,19 +12,21 @@ class MailServices {
       },
     });
   }
+
   async sendActivationMail(to, link) {
-    await this.transportier.sendMail({
+    await this.transporter.sendMail({
       from: process.env.SMTP_USER,
       to,
-      subject: `Activate account on ${process.env.API_URL}`,
+      subject: "Активация аккаунта на " + process.env.API_URL,
       text: "",
       html: `
-      <div>
-      <h1> On activate your contact link to</h1>
-      <a href="${link}">${link}</a>
-      </div>`,
+                    <div>
+                        <h1>Для активации перейдите по ссылке</h1>
+                        <a href="${link}">${link}</a>
+                    </div>
+                `,
     });
   }
 }
 
-export default new MailServices();
+module.exports = new MailService();

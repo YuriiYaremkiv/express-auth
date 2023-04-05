@@ -1,20 +1,21 @@
-import bcrypt from "bcrypt";
-import { v4 as uuidv4 } from "uuid";
-import UserModel from "../models/user-model.js";
-import mailService from "./mail-service.js";
-import tokenService from "./token-service.js";
-import UserDto from "../dtos/user-dto.js";
-import ApiError from "../exceptions/api-error.js";
+const UserModel = require("../models/user-model");
+const bcrypt = require("bcrypt");
+const uuid = require("uuid");
+const mailService = require("./mail-service");
+const tokenService = require("./token-service");
+const UserDto = require("../dtos/user-dto");
+const ApiError = require("../exceptions/api-error");
 
-class UserServices {
+class UserService {
   async registration(email, password) {
     const candidate = await UserModel.findOne({ email });
     if (candidate) {
-      throw ApiError.BadRequest("Пользователь с таким адресом уже существует");
+      throw ApiError.BadRequest(
+        `Пользователь с почтовым адресом ${email} уже существует`
+      );
     }
-
     const hashPassword = await bcrypt.hash(password, 3);
-    const activationLink = uuidv4();
+    const activationLink = uuid.v4(); // v34fa-asfasf-142saf-sa-asf
 
     const user = await UserModel.create({
       email,
@@ -26,17 +27,17 @@ class UserServices {
       `${process.env.API_URL}/api/activate/${activationLink}`
     );
 
-    const userDto = new UserDto(user);
+    const userDto = new UserDto(user); // id, email, isActivated
     const tokens = tokenService.generateTokens({ ...userDto });
-
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
+
     return { ...tokens, user: userDto };
   }
 
   async activate(activationLink) {
     const user = await UserModel.findOne({ activationLink });
     if (!user) {
-      throw ApiError.BadRequest("No correct link to activation");
+      throw ApiError.BadRequest("Неккоректная ссылка активации");
     }
     user.isActivated = true;
     await user.save();
@@ -45,13 +46,12 @@ class UserServices {
   async login(email, password) {
     const user = await UserModel.findOne({ email });
     if (!user) {
-      throw ApiError.BadRequest("Пользователь с таким емайл не найден");
+      throw ApiError.BadRequest("Пользователь с таким email не найден");
     }
-    const isPassEauals = await bcrypt.compare(password, user.password);
-    if (!isPassEauals) {
-      throw ApiError("Неверный пароль");
+    const isPassEquals = await bcrypt.compare(password, user.password);
+    if (!isPassEquals) {
+      throw ApiError.BadRequest("Неверный пароль");
     }
-
     const userDto = new UserDto(user);
     const tokens = tokenService.generateTokens({ ...userDto });
 
@@ -69,11 +69,10 @@ class UserServices {
       throw ApiError.UnauthorizedError();
     }
     const userData = tokenService.validateRefreshToken(refreshToken);
-    const tokenFromDB = await tokenService.findToken(refreshToken);
-    if (!userData || !tokenFromDB) {
+    const tokenFromDb = await tokenService.findToken(refreshToken);
+    if (!userData || !tokenFromDb) {
       throw ApiError.UnauthorizedError();
     }
-
     const user = await UserModel.findById(userData.id);
     const userDto = new UserDto(user);
     const tokens = tokenService.generateTokens({ ...userDto });
@@ -88,4 +87,4 @@ class UserServices {
   }
 }
 
-export default new UserServices();
+module.exports = new UserService();

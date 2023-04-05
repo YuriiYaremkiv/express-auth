@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+const { Schema, model } = require("mongoose");
 
 const UserSchema = new Schema({
   email: { type: String, unique: true, required: true },
@@ -7,5 +7,4 @@ const UserSchema = new Schema({
   activationLink: { type: String },
 });
 
-const UserModel = model("User", UserSchema);
-export default UserModel;
+module.exports = model("User", UserSchema);

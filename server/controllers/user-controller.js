@@ -1,6 +1,6 @@
-import userService from "../service/user-service.js";
-import { validationResult } from "express-validator";
-import ApiError from "../exceptions/api-error.js";
+const userService = require("../service/user-service");
+const { validationResult } = require("express-validator");
+const ApiError = require("../exceptions/api-error");
 
 class UserController {
   async registration(req, res, next) {
@@ -11,7 +11,6 @@ class UserController {
           ApiError.BadRequest("Ошибка при валидации", errors.array())
         );
       }
-
       const { email, password } = req.body;
       const userData = await userService.registration(email, password);
       res.cookie("refreshToken", userData.refreshToken, {
@@ -19,8 +18,8 @@ class UserController {
         httpOnly: true,
       });
       return res.json(userData);
-    } catch (err) {
-      next(err);
+    } catch (e) {
+      next(e);
     }
   }
 
@@ -33,8 +32,8 @@ class UserController {
         httpOnly: true,
       });
       return res.json(userData);
-    } catch (err) {
-      next(err);
+    } catch (e) {
+      next(e);
     }
   }
 
@@ -44,8 +43,8 @@ class UserController {
       const token = await userService.logout(refreshToken);
       res.clearCookie("refreshToken");
       return res.json(token);
-    } catch (err) {
-      next(err);
+    } catch (e) {
+      next(e);
     }
   }
 
@@ -54,8 +53,8 @@ class UserController {
       const activationLink = req.params.link;
       await userService.activate(activationLink);
       return res.redirect(process.env.CLIENT_URL);
-    } catch (err) {
-      next(err);
+    } catch (e) {
+      next(e);
     }
   }
 
@@ -68,17 +67,19 @@ class UserController {
         httpOnly: true,
       });
       return res.json(userData);
-    } catch (err) {}
+    } catch (e) {
+      next(e);
+    }
   }
 
   async getUsers(req, res, next) {
     try {
       const users = await userService.getAllUsers();
       return res.json(users);
-    } catch (err) {
-      next(err);
+    } catch (e) {
+      next(e);
     }
   }
 }
 
-export default new UserController();
+module.exports = new UserController();
