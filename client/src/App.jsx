@@ -1,63 +1,69 @@
-import React, { FC, useContext, useEffect, useState } from "react";
+import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import LoginForm from "./components/LoginForm";
-import { Context } from "./index";
-import { observer } from "mobx-react-lite";
-import { IUser } from "./models/IUser";
 import UserService from "./services/UserServices";
+import AuthActions from "./redux/auth/authOperations";
 
 const App = () => {
-  const { store } = useContext(Context);
   const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    if (localStorage.getItem("token")) {
-      store.checkAuth();
-    }
-  }, []);
+  const [error, setError] = useState(null);
+  const user = useSelector((state) => state.auth.user);
+  const isLogged = useSelector((state) => state.auth.isLogged);
+  const isLoading = useSelector((state) => state.auth.isLoading);
+  const dispatch = useDispatch();
 
   async function getUsers() {
     try {
       const response = await UserService.fetchUsers();
       setUsers(response.data);
     } catch (e) {
-      console.log(e);
+      setError(e.message);
     }
   }
 
-  if (store.isLoading) {
-    return <div>Загрузка...</div>;
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
-  if (!store.isAuth) {
+  if (!isLogged) {
     return (
-      <div>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
         <LoginForm />
-        <button onClick={getUsers}>Получить пользователей</button>
       </div>
     );
   }
 
   return (
-    <div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "1rem",
+      }}
+    >
+      <h1>{isLogged ? `User ${user.email} is authenticated` : "AUTHORIZE"}</h1>
       <h1>
-        {store.isAuth
-          ? `Пользователь авторизован ${store.user.email}`
-          : "АВТОРИЗУЙТЕСЬ"}
+        {user.isActivated
+          ? "Account verified by email."
+          : "VERIFY YOUR ACCOUNT!"}
       </h1>
-      <h1>
-        {store.user.isActivated
-          ? "Аккаунт подтвержден по почте"
-          : "ПОДТВЕРДИТЕ АККАУНТ!!!!"}
-      </h1>
-      <button onClick={() => store.logout()}>Выйти</button>
+      <button onClick={() => dispatch(AuthActions.logout())}>Logout</button>
       <div>
-        <button onClick={getUsers}>Получить пользователей</button>
+        <button onClick={() => getUsers()}>Get users</button>
       </div>
       {users.map((user) => (
         <div key={user.email}>{user.email}</div>
       ))}
+      {error && <p>{error}</p>}
     </div>
   );
 };
 
-export default observer(App);
+export default App;

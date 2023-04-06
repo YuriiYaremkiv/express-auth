@@ -1,21 +1,21 @@
-const UserModel = require("../models/user-model");
-const bcrypt = require("bcrypt");
-const uuid = require("uuid");
-const mailService = require("./mail-service");
-const tokenService = require("./token-service");
-const UserDto = require("../dtos/user-dto");
-const ApiError = require("../exceptions/api-error");
+import UserModel from "../models/user-model.js";
+import bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
+import mailService from "./mail-service.js";
+import tokenService from "./token-service.js";
+import UserDto from "../dtos/user-dto.js";
+import ApiError from "../exceptions/api-error.js";
 
 class UserService {
   async registration(email, password) {
     const candidate = await UserModel.findOne({ email });
     if (candidate) {
       throw ApiError.BadRequest(
-        `Пользователь с почтовым адресом ${email} уже существует`
+        `A user with the email address ${email} already exists`
       );
     }
     const hashPassword = await bcrypt.hash(password, 3);
-    const activationLink = uuid.v4(); // v34fa-asfasf-142saf-sa-asf
+    const activationLink = uuidv4();
 
     const user = await UserModel.create({
       email,
@@ -27,7 +27,7 @@ class UserService {
       `${process.env.API_URL}/api/activate/${activationLink}`
     );
 
-    const userDto = new UserDto(user); // id, email, isActivated
+    const userDto = new UserDto(user);
     const tokens = tokenService.generateTokens({ ...userDto });
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
@@ -37,7 +37,7 @@ class UserService {
   async activate(activationLink) {
     const user = await UserModel.findOne({ activationLink });
     if (!user) {
-      throw ApiError.BadRequest("Неккоректная ссылка активации");
+      throw ApiError.BadRequest("Invalid activation link");
     }
     user.isActivated = true;
     await user.save();
@@ -46,11 +46,11 @@ class UserService {
   async login(email, password) {
     const user = await UserModel.findOne({ email });
     if (!user) {
-      throw ApiError.BadRequest("Пользователь с таким email не найден");
+      throw ApiError.BadRequest("A user with this email was not found");
     }
     const isPassEquals = await bcrypt.compare(password, user.password);
     if (!isPassEquals) {
-      throw ApiError.BadRequest("Неверный пароль");
+      throw ApiError.BadRequest("Incorrect password");
     }
     const userDto = new UserDto(user);
     const tokens = tokenService.generateTokens({ ...userDto });
@@ -87,4 +87,4 @@ class UserService {
   }
 }
 
-module.exports = new UserService();
+export default new UserService();

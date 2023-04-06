@@ -1,4 +1,6 @@
-const nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 
 class MailService {
   constructor() {
@@ -17,16 +19,11 @@ class MailService {
     await this.transporter.sendMail({
       from: process.env.SMTP_USER,
       to,
-      subject: "Активация аккаунта на " + process.env.API_URL,
+      subject: "Account activation on " + process.env.API_URL,
       text: "",
-      html: `
-                    <div>
-                        <h1>Для активации перейдите по ссылке</h1>
-                        <a href="${link}">${link}</a>
-                    </div>
-                `,
+      html: `<div><h1>To activate, please follow the link</h1><a href="${link}">${link}</a></div>`,
     });
   }
 }
 
-module.exports = new MailService();
+export default new MailService();
